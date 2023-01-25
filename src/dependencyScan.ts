@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { existsSync, mkdirSync } from "fs";
 import { glob } from "glob";
-import { basename, dirname, join, resolve } from "path";
+import path, { basename, dirname, join, resolve } from "path";
 import { promisify } from "util";
 import core from "./core";
 import { DependencyCollector } from "./dependencyCollector";
@@ -73,7 +73,7 @@ export class DependencyScan {
       if (this.options.useExistingOutput && existsSync(outputPath)) {
         output = core.readTextFile(outputPath);
       } else {
-        output = await this.execWithoutError("..\\gradlew.bat dependencies", moduleFolder);
+        output = await this.execWithoutError(".." + path.sep + "gradlew dependencies", moduleFolder);
         core.writeTextFile(outputPath, output);
       }
       const parser = new DependencyReportParser(this.console);

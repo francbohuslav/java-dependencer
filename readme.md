@@ -2,7 +2,7 @@
 
 Java project dependency analyzator, uses gradle.
 
-Home page: <https://github.com/francbohuslav/uu-vulnerability-scan-report>  
+Home page: <https://github.com/francbohuslav/java-dependencer>  
 Skype: [cis_franc](skype:cis_franc), E-mail: [bohuslav.franc@unicornuniverse.eu](bohuslav.franc@unicornuniverse.eu)
 
 ---

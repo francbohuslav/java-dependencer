@@ -1,6 +1,6 @@
 {
   "name": "java-dependencer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Java project dependency analyzator",
   "main": "dist/index.js",
   "bin": {
