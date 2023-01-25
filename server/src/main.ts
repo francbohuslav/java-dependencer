@@ -1,18 +1,17 @@
-import { NestFactory } from '@nestjs/core';
-import * as commandLineArgs from 'command-line-args';
-import { exit } from 'process';
-import { AppModule } from './app.module';
-import { DependencyScan } from './core/dependencyScan';
-import { ICommandOptions } from './core/interfaces';
+import { NestFactory } from "@nestjs/core";
+import * as commandLineArgs from "command-line-args";
+import { exit } from "process";
+import { AppModule } from "./app.module";
+import { DependencyScan } from "./core/dependencyScan";
+import { ICommandOptions } from "./core/interfaces";
 
 async function bootstrap() {
   // See ICommandOptions for help
-  const optionDefinitions: any[] = [
-    { name: 'appFolder', alias: 'a', type: String, multiple: true },
-  ];
+  const optionDefinitions: any[] = [{ name: "appFolder", alias: "a", type: String, multiple: true }];
   const options = commandLineArgs(optionDefinitions) as ICommandOptions;
   //TODO: BF: zrusit
-  options.appFolder = [];
+  options.appFolder = ["c:\\Gateway\\v4_X\\uu_energygateway_datagatewayg01\\", "c:\\Gateway\\v4_X\\uu_energygateway_messageregistryg01\\"];
+  options.doNotScan = true;
   if (!options.appFolder || options.appFolder.length === 0) {
     console.log(
       `Syntax: npx java-dependencer --appFolder {multiple folders to java source code} --dependency {some library name}
@@ -36,6 +35,7 @@ async function bootstrap() {
     DependencyScan.Instance = new DependencyScan(options, console);
     await DependencyScan.Instance.scan();
     const app = await NestFactory.create(AppModule);
+    app.enableCors();
     await app.listen(3000);
   }
 }

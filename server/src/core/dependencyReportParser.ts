@@ -1,4 +1,4 @@
-import { IConsole, INode } from './interfaces';
+import { IConsole, INode } from "./interfaces";
 
 export class DependencyReportParser {
   private readonly libraryIdentifier = /[+\\]---/;
@@ -14,11 +14,9 @@ export class DependencyReportParser {
 
   /* istanbul ignore next */
   testingPrint(nodes: INode[]): string {
-    let str = '';
+    let str = "";
     for (const node of nodes) {
-      str += `${'|    '.repeat(node.level - 1)}${node.hypens} ${node.library}:${
-        node.version
-      }\r\n`;
+      str += `${"|    ".repeat(node.level - 1)}${node.hypens} ${node.library}:${node.version}\r\n`;
       if (node.childNodes.length > 0) {
         str += this.testingPrint(node.childNodes);
       }
@@ -29,20 +27,16 @@ export class DependencyReportParser {
   private getTree(lines: string[]): INode[] {
     const root: INode = {
       level: 0,
-      library: 'ROOT',
+      library: "ROOT",
       childNodes: [],
-      version: '',
-      hypens: '',
+      version: "",
+      hypens: "",
     };
     this.createSubNode(root, root, lines);
     return root.childNodes;
   }
 
-  private createSubNode(
-    parentNode: INode,
-    prevNode: INode,
-    lines: string[],
-  ): INode | undefined {
+  private createSubNode(parentNode: INode, prevNode: INode, lines: string[]): INode | undefined {
     let line = lines.shift();
     while (line !== undefined) {
       const hypenSepParts = line.split(this.libraryIdentifier);
@@ -58,12 +52,9 @@ export class DependencyReportParser {
           .match(/^(.*):([^:]+)$/);
         let node: INode = {
           level,
-          hypens: line.substring(
-            hypenSepParts[0].length,
-            hypenSepParts[0].length + 4,
-          ),
+          hypens: line.substring(hypenSepParts[0].length, hypenSepParts[0].length + 4),
           library: match ? match[1] : line,
-          version: match ? match[2] : '',
+          version: match ? match[2] : "",
           childNodes: [],
         };
 
@@ -93,6 +84,6 @@ export class DependencyReportParser {
    * @param content
    */
   private getTreeLines(content: string): string[] {
-    return content.split(/\r?\n/).filter((line) => line.includes('---'));
+    return content.split(/\r?\n/).filter((line) => line.includes("---") && !line.includes("-> project "));
   }
 }

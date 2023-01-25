@@ -1,34 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import { Alert, Box, Button, Container, Grid, TextField } from "@mui/material";
+import { useEffect, useState } from "react";
+import { IReport } from "../../server/src/core/interfaces";
+import { Report } from "./Report";
 
-function App() {
-  const [count, setCount] = useState(0)
+export function App() {
+  const [term, setTerm] = useState<string>("");
+  const [report, setReport] = useState<IReport | undefined>(undefined);
+
+  useEffect(() => {
+    if (term && term.length >= 3) {
+      searchTerm(term);
+    }
+  }, [term]);
+
+  async function searchTerm(term: string) {
+    console.log(`Searching ${term}`);
+    const data = await fetch("http://localhost:3000/?term=" + encodeURIComponent(term));
+    const report = (await data.json()) as IReport;
+    console.log(report);
+    setReport(report);
+  }
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    var formData = new FormData(e.target as HTMLFormElement);
+    setTerm(formData.get("term") as string);
+  }
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </div>
-  )
+    <Container>
+      <Box mt={1}>
+        <form onSubmit={onSubmit}>
+          <Box>
+            <Grid container justifyContent="space-between" alignItems="center">
+              <Grid item xs={10}>
+                <TextField name="term" label="Library to search" variant="standard" helperText="At least 3 letter must be insterted" fullWidth />
+              </Grid>
+              <Grid item>
+                <Button type="submit" variant="contained">
+                  Search
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </form>
+        {report && (
+          <Box mt={3}>
+            {report.allUsedVersions.length === 0 ? <Alert severity="warning">Library "{term}" not found</Alert> : <Report report={report}></Report>}
+          </Box>
+        )}
+      </Box>
+    </Container>
+  );
 }
-
-export default App

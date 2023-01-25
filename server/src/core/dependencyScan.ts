@@ -1,18 +1,13 @@
-import { exec } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
-import { glob } from 'glob';
-import path, { basename, dirname, join, resolve } from 'path';
-import { promisify } from 'util';
-import core from './core';
-import { DependencyCollector } from './dependencyCollector';
-import { DependencyReportParser } from './dependencyReportParser';
-import {
-  ICommandOptions,
-  IConsole,
-  IReport,
-  IReportApplication,
-  IReportModule,
-} from './interfaces';
+import { exec } from "child_process";
+import { existsSync, mkdirSync, rmSync } from "fs";
+import { readdir } from "fs/promises";
+import { glob } from "glob";
+import { basename, dirname, join, resolve, sep } from "path";
+import { promisify } from "util";
+import core from "./core";
+import { DependencyCollector } from "./dependencyCollector";
+import { DependencyReportParser } from "./dependencyReportParser";
+import { ICommandOptions, IConsole, IReport, IReportApplication, IReportModule } from "./interfaces";
 
 const globAsync = promisify(glob);
 
@@ -24,32 +19,36 @@ export class DependencyScan {
   constructor(private options: ICommandOptions, private console: IConsole) {}
 
   public async scan(): Promise<void> {
-    const outputDir = join(process.cwd(), '_javaDependencerOutput');
+    const outputDir = join(process.cwd(), "_javaDependencerOutput");
     this.console.log(`See folder ${outputDir} for reports`);
     this.createOutputdir(outputDir);
+    if (!this.options.doNotScan) {
+      const fileToDelete = await readdir(outputDir);
+      for (const file of fileToDelete) {
+        this.console.log(`Remove old file/dir ${file}`);
+        rmSync(join(outputDir, file), { recursive: true });
+      }
+    }
     this.appStructure = {};
     for (const appFolder of this.options.appFolder) {
       // Only first level is scanned
-      const filter = join(appFolder, '*/build.gradle').replace(/\\/g, '/');
+      const filter = join(appFolder, "*/build.gradle").replace(/\\/g, "/");
       const moduleGradles = await globAsync(filter);
       const appName = basename(resolve(appFolder));
-      this.console.log('App', appName);
+      this.console.log("App", appName);
       const moduleNames: string[] = [];
       for (const moduleGradle of moduleGradles) {
-        if (
-          await this.scanModule(dirname(moduleGradle), join(outputDir, appName))
-        ) {
-          moduleNames.push(dirname(moduleGradle));
+        if (this.options.doNotScan || (await this.scanModule(dirname(moduleGradle), join(outputDir, appName)))) {
+          moduleNames.push(basename(dirname(moduleGradle)));
         }
       }
       this.appStructure[appName] = moduleNames;
     }
-    this.console.log('Done');
+    this.console.log("Done");
   }
 
   public search(library: string): IReport {
-    const outputDir = join(process.cwd(), '_javaDependencerOutput');
-
+    const outputDir = join(process.cwd(), "_javaDependencerOutput");
     const allUsedVersions = new Set<string>();
     const report: IReport = {
       applications: {},
@@ -59,11 +58,7 @@ export class DependencyScan {
       const appUsedVersions = new Set<string>();
       const moduleReports: { [moduleName: string]: IReportModule } = {};
       for (const moduleName of this.appStructure[appName]) {
-        const moduleReport = this.searchModule(
-          moduleName,
-          join(outputDir, appName),
-          library,
-        );
+        const moduleReport = this.searchModule(moduleName, join(outputDir, appName), library);
         if (moduleReport) {
           for (const version of moduleReport.allUsedVersions) {
             appUsedVersions.add(version);
@@ -79,6 +74,7 @@ export class DependencyScan {
       report.applications[appName] = appReport;
     }
     report.allUsedVersions = [...allUsedVersions];
+    report.allUsedVersions.sort();
     return report;
   }
 
@@ -88,19 +84,13 @@ export class DependencyScan {
     }
   }
 
-  private async scanModule(
-    moduleFolder: string,
-    outputDir: string,
-  ): Promise<boolean> {
+  private async scanModule(moduleFolder: string, outputDir: string): Promise<boolean> {
     try {
-      this.console.log(' -', moduleFolder);
+      this.console.log(" -", moduleFolder);
       this.createOutputdir(outputDir);
-      let output = '';
-      const outputPath = join(outputDir, basename(moduleFolder) + '.txt');
-      output = await this.execWithoutError(
-        '..' + path.sep + 'gradlew dependencies',
-        moduleFolder,
-      );
+      let output = "";
+      const outputPath = join(outputDir, basename(moduleFolder) + ".txt");
+      output = await this.execWithoutError(".." + sep + "gradlew dependencies", moduleFolder);
       core.writeTextFile(outputPath, output);
       return true;
     } catch (err) {
@@ -109,13 +99,9 @@ export class DependencyScan {
     }
   }
 
-  private searchModule(
-    moduleName: string,
-    outputDir: string,
-    library: string,
-  ): IReportModule | undefined {
+  private searchModule(moduleName: string, outputDir: string, library: string): IReportModule | undefined {
     try {
-      const outputPath = join(outputDir, moduleName + '.txt');
+      const outputPath = join(outputDir, moduleName + ".txt");
       const output = core.readTextFile(outputPath);
       const parser = new DependencyReportParser(this.console);
       const nodes = parser.parse(output);
@@ -151,16 +137,16 @@ export class DependencyScan {
     let prevOutput = output;
     do {
       prevOutput = output;
-      output = output.replace(/         /g, '    |    ');
-      output = output.replace(/^     /gm, '|    ');
+      output = output.replace(/         /g, "    |    ");
+      output = output.replace(/^     /gm, "|    ");
     } while (prevOutput != output);
     do {
       prevOutput = output;
-      output = output.replace(/^    ([|+\\])/gm, '|    $1');
+      output = output.replace(/^    ([|+\\])/gm, "|    $1");
     } while (prevOutput != output);
     do {
       prevOutput = output;
-      output = output.replace(/\|     ([|+\\])/gm, '|    $1');
+      output = output.replace(/\|     ([|+\\])/gm, "|    $1");
     } while (prevOutput != output);
     return output;
   }
