@@ -2,3 +2,4 @@
 /dist
 /.vscode
 /*.code-workspace
+/.npmrc
