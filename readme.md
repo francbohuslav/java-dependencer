@@ -39,4 +39,4 @@ Output report files are saved into `{current folder}/_javaDependencerOutput`.
 
 ## Screenshot
 
-![screenshot](screenshot.png)
+![screenshot](https://raw.githubusercontent.com/francbohuslav/java-dependencer/master/screenshot.png)
