@@ -1,6 +1,1 @@
-/node_modules
-/dist
-/.vscode
-/*.code-workspace
-/.npmrc
-/_javaDependencerOutput
+java-dependencer.code-workspace
