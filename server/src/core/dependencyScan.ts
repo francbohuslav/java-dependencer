@@ -16,17 +16,18 @@ export class DependencyScan {
 
   private appStructure: { [app: string]: string[] } = {};
 
+  private outputDir = join(process.cwd(), "_javaDependencerOutput");
+
   constructor(private options: ICommandOptions, private console: IConsole) {}
 
   public async scan(): Promise<void> {
-    const outputDir = join(process.cwd(), "_javaDependencerOutput");
-    this.console.log(`See folder ${outputDir} for reports`);
-    this.createOutputdir(outputDir);
+    this.console.log(`See folder ${this.outputDir} for reports`);
+    this.createOutputdir(this.outputDir);
     if (!this.options.doNotScan) {
-      const fileToDelete = await readdir(outputDir);
+      const fileToDelete = await readdir(this.outputDir);
       for (const file of fileToDelete) {
         this.console.log(`Remove old file/dir ${file}`);
-        rmSync(join(outputDir, file), { recursive: true });
+        rmSync(join(this.outputDir, file), { recursive: true });
       }
     }
     this.appStructure = {};
@@ -38,7 +39,7 @@ export class DependencyScan {
       this.console.log("App", appName);
       const moduleNames: string[] = [];
       for (const moduleGradle of moduleGradles) {
-        if (this.options.doNotScan || (await this.scanModule(dirname(moduleGradle), join(outputDir, appName)))) {
+        if (this.options.doNotScan || (await this.scanModule(dirname(moduleGradle), join(this.outputDir, appName)))) {
           moduleNames.push(basename(dirname(moduleGradle)));
         }
       }
@@ -47,8 +48,19 @@ export class DependencyScan {
     this.console.log("Done");
   }
 
+  public getAllLibraries(term: string): string[] {
+    const allUsedLibraries = new Set<string>();
+    for (const appName of Object.keys(this.appStructure)) {
+      for (const moduleName of this.appStructure[appName]) {
+        this.getModuleLibraries(moduleName, join(this.outputDir, appName), allUsedLibraries, term);
+      }
+    }
+    const result = [...allUsedLibraries];
+    result.sort();
+    return result;
+  }
+
   public search(library: string): IReport {
-    const outputDir = join(process.cwd(), "_javaDependencerOutput");
     const allUsedVersions = new Set<string>();
     const report: IReport = {
       applications: {},
@@ -58,7 +70,7 @@ export class DependencyScan {
       const appUsedVersions = new Set<string>();
       const moduleReports: { [moduleName: string]: IReportModule } = {};
       for (const moduleName of this.appStructure[appName]) {
-        const moduleReport = this.searchModule(moduleName, join(outputDir, appName), library);
+        const moduleReport = this.searchModule(moduleName, join(this.outputDir, appName), library);
         if (moduleReport) {
           for (const version of moduleReport.allUsedVersions) {
             appUsedVersions.add(version);
@@ -76,6 +88,11 @@ export class DependencyScan {
     report.allUsedVersions = [...allUsedVersions];
     report.allUsedVersions.sort();
     return report;
+  }
+
+  public getRawModuleReport(appName: string, moduleName: string): string {
+    const outputPath = join(this.outputDir, appName, moduleName + ".txt");
+    return core.readTextFile(outputPath);
   }
 
   private createOutputdir(outputDir: string) {
@@ -112,6 +129,21 @@ export class DependencyScan {
         allUsedVersions: [...new Set(occurrences.map((o) => o.library))],
         occurrences,
       };
+    } catch (err) {
+      this.console.error(err);
+      return undefined;
+    }
+  }
+
+  getModuleLibraries(moduleName: string, outputDir: string, allUsedLibraries: Set<string>, library: string) {
+    try {
+      const outputPath = join(outputDir, moduleName + ".txt");
+      const output = core.readTextFile(outputPath);
+      const parser = new DependencyReportParser(this.console);
+      const nodes = parser.parse(output);
+
+      const collector = new DependencyCollector();
+      collector.collectLibraries(nodes, allUsedLibraries, library);
     } catch (err) {
       this.console.error(err);
       return undefined;
