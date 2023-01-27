@@ -1,3 +1,7 @@
-java-dependencer.code-workspace
-/server/_javaDependencerOutput/
-/.npmrc
+node_modules
+.vscode
+*.code-workspace
+.javaDependencerOutput
+.npmrc
+/server/dist
+/web/dist

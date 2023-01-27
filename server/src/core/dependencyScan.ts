@@ -100,7 +100,8 @@ export class DependencyScan {
 
   private async findApplications() {
     this.console.log(`Searching gradlew in ${this.cwd}...`);
-    let gradlews = await globAsync(join(this.cwd, "*/gradlew").replace(/\\/g, "/"));
+    let gradlews = await globAsync(join(this.cwd, "gradlew").replace(/\\/g, "/"));
+    gradlews = gradlews.concat(await globAsync(join(this.cwd, "*/gradlew").replace(/\\/g, "/")));
     gradlews = gradlews.concat(await globAsync(join(this.cwd, "*/*/gradlew").replace(/\\/g, "/")));
     const apps = gradlews.map((g) => dirname(g));
     this.console.log("Found apps", apps);
