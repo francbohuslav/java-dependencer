@@ -1,8 +1,3 @@
-export interface ICommandOptions {
-  appFolder: string[];
-  doNotScan: boolean;
-}
-
 export interface INode {
   library: string;
   version: string;

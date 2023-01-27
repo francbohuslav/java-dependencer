@@ -1,0 +1,14 @@
+{
+  "name": "java-dependencer",
+  "version": "2.0.0",
+  "description": "Java project dependency analyzator",
+  "main": "server/dist/main.js",
+  "bin": {
+    "java-dependencer": "server/dist/main.js"
+  },
+  "scripts": {
+    "start": "node server/dist/main.js",
+    "build": "cd server && npm i && npm run build && cd .. && cd web && npm i && npm run build"
+  },
+  "author": "Bohuslav Franc"
+}

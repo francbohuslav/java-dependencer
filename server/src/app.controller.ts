@@ -2,7 +2,7 @@ import { Controller, Get, Query } from "@nestjs/common";
 import { DependencyScan } from "./core/dependencyScan";
 import { IReport } from "./core/interfaces";
 
-@Controller()
+@Controller("/api")
 export class AppController {
   @Get()
   getReport(@Query("library") library: string): IReport | null {
@@ -23,5 +23,11 @@ export class AppController {
   @Get("getModuleReport")
   getModuleReport(@Query("appName") appName: string, @Query("moduleName") moduleName: string): string {
     return DependencyScan.Instance.getRawModuleReport(appName, moduleName);
+  }
+
+  @Get("refreshDependencies")
+  async refreshDependencies(): Promise<boolean> {
+    await DependencyScan.Instance.scan(true);
+    return true;
   }
 }
