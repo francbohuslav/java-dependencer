@@ -1,12 +1,13 @@
 {
   "name": "java-dependencer",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Java project dependency analyzator",
   "main": "server/dist/main.js",
   "bin": {
     "java-dependencer": "server/dist/main.js"
   },
   "scripts": {
+    "postinstall": "cd server && npm i",
     "start": "node server/dist/main.js",
     "build": "cd server && npm i && npm run build && cd .. && cd web && npm i && npm run build"
   },
