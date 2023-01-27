@@ -28,13 +28,13 @@ export default function Search(props: ISearchProps) {
 
   return (
     <Autocomplete
-      options={options}
       autoComplete
       filterOptions={(x) => x}
       fullWidth
       filterSelectedOptions
       noOptionsText={inputValue.length > 2 ? "Not found" : "Keep writing"}
       value={value}
+      options={options}
       onChange={(_event: any, newValue: string | null) => {
         setOptions(newValue ? [newValue, ...options] : options);
         setValue(newValue);
@@ -44,7 +44,14 @@ export default function Search(props: ISearchProps) {
         setInputValue(newInputValue);
       }}
       renderInput={(params) => (
-        <TextField {...params} variant="standard" label="Library to search" helperText="At least 3 letter must be insterted" fullWidth />
+        <TextField
+          {...params}
+          variant="standard"
+          label="Library to analyse"
+          placeholder="enter some library name"
+          helperText="At least 3 letter must be insterted"
+          fullWidth
+        />
       )}
     />
   );

@@ -1,6 +1,5 @@
 #! /usr/bin/env node
 import { NestFactory } from "@nestjs/core";
-//TODO: BF: az to bude jiste, tak odstranit z package.json command line veci
 import { AppModule } from "./app.module";
 import { DependencyScan } from "./core/dependencyScan";
 

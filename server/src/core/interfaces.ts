@@ -1,6 +1,7 @@
 export interface INode {
   library: string;
   version: string;
+  configuration: string;
   level: number;
   hypens: string;
   childNodes: INode[];
@@ -13,21 +14,21 @@ export interface IConsole {
 }
 
 export interface IOccurrence {
+  configuration: string;
   library: string;
+  /** E.g. 2.8.1 -> 2.9.6 */
+  versionPart: string;
   usedBy: string[];
 }
 
 export interface IReport {
-  allUsedVersions: string[];
   applications: { [appName: string]: IReportApplication };
 }
 
 export interface IReportApplication {
-  allUsedVersions: string[];
   modules: { [moduleName: string]: IReportModule };
 }
 
 export interface IReportModule {
-  allUsedVersions: string[];
   occurrences: IOccurrence[];
 }

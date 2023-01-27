@@ -1,14 +1,16 @@
-import { IConsole, INode } from "./interfaces";
+import { INode } from "./interfaces";
 
 export class DependencyReportParser {
   private readonly libraryIdentifier = /[+\\]---/;
 
-  constructor(private console: IConsole) {}
+  private readonly ROOT_NODE_NAME = "ROOT";
+
+  private readonly configurationRegex = /^([a-z]+)\s-\s.*\.(\s\(n\))?$/i;
 
   public parse(content: string): INode[] {
     const lines = this.getTreeLines(content);
+    // core.writeTextFile("testingOutput.txt", lines.join("\n"));
     const tree = this.getTree(lines);
-    //core.writeTextFile("testingOutput.txt", this.testingPrint(tree));
     return tree;
   }
 
@@ -27,16 +29,17 @@ export class DependencyReportParser {
   private getTree(lines: string[]): INode[] {
     const root: INode = {
       level: 0,
-      library: "ROOT",
+      library: this.ROOT_NODE_NAME,
       childNodes: [],
       version: "",
       hypens: "",
+      configuration: "",
     };
-    this.createSubNode(root, root, lines);
+    this.createSubNode(root, root, lines, "");
     return root.childNodes;
   }
 
-  private createSubNode(parentNode: INode, prevNode: INode, lines: string[]): INode | undefined {
+  private createSubNode(parentNode: INode, prevNode: INode, lines: string[], configuration: string): INode | undefined {
     let line = lines.shift();
     while (line !== undefined) {
       const hypenSepParts = line.split(this.libraryIdentifier);
@@ -55,14 +58,19 @@ export class DependencyReportParser {
           hypens: line.substring(hypenSepParts[0].length, hypenSepParts[0].length + 4),
           library: match ? match[1] : line,
           version: match ? match[2] : "",
+          configuration,
           childNodes: [],
         };
+        if (!node.configuration) {
+          console.log(node);
+          console.error("Configuration is empty. Impossible!");
+        }
 
         if (prevNode.level === level) {
           parentNode.childNodes.push(node);
         } else if (level > prevNode.level) {
           prevNode.childNodes.push(node);
-          const nextNode = this.createSubNode(prevNode, node, lines);
+          const nextNode = this.createSubNode(prevNode, node, lines, configuration);
           if (nextNode?.level === parentNode.level + 1) {
             parentNode.childNodes.push(nextNode);
             node = nextNode;
@@ -73,6 +81,9 @@ export class DependencyReportParser {
           return node;
         }
         prevNode = node;
+      } else if (line.match(this.configurationRegex)) {
+        const match = line.match(this.configurationRegex);
+        configuration = match[1];
       }
       line = lines.shift();
     }
@@ -84,6 +95,8 @@ export class DependencyReportParser {
    * @param content
    */
   private getTreeLines(content: string): string[] {
-    return content.split(/\r?\n/).filter((line) => line.includes("---") && !line.includes("-> project "));
+    return content
+      .split(/\r?\n/)
+      .filter((line) => (line.includes("---") || line.match(this.configurationRegex)) && !line.includes("-> project ") && !line.includes("-----------"));
   }
 }

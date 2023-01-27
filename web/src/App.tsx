@@ -6,6 +6,7 @@ import "./App.css";
 import { ajax } from "./functions";
 import { RefreshDialog } from "./RefreshDialog";
 import { Report } from "./Report";
+import ReportHelper from "./ReportHelper";
 import Search from "./Search";
 
 export function App() {
@@ -47,7 +48,11 @@ export function App() {
           <Search onChange={setLibrary} />
           {report && (
             <Box mt={3}>
-              {report.allUsedVersions.length === 0 ? <Alert severity="warning">Library "{library}" not found</Alert> : <Report report={report}></Report>}
+              {ReportHelper.fetchAllVersions(report).size === 0 ? (
+                <Alert severity="warning">Library "{library}" not found</Alert>
+              ) : (
+                <Report report={report}></Report>
+              )}
             </Box>
           )}
         </Box>

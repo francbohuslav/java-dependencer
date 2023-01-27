@@ -20,7 +20,7 @@ export const ModuleReport = (props: IOccurrencesProps) => {
 
   return (
     <Dialog maxWidth="xl" fullWidth onClose={() => props.onClose()} open>
-      <DialogTitle>Occurrences</DialogTitle>
+      <DialogTitle>Dependency report</DialogTitle>
       <DialogContent>
         <DialogContentText>{report ? <pre>{report}</pre> : <CircularProgress />}</DialogContentText>
       </DialogContent>

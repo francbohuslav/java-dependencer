@@ -1,10 +1,11 @@
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Box, Chip, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
 import Link from "@mui/material/Link";
 import { Fragment, useState } from "react";
-import { IOccurrence, IReport } from "../../server/src/core/interfaces";
+import { IOccurrence, IReport, IReportApplication, IReportModule } from "../../server/src/core/interfaces";
 import { IModuleId } from "./functions";
 import { ModuleReport } from "./ModuleReport";
 import { Occurrences } from "./Occurrences";
+import ReportHelper from "./ReportHelper";
 
 export interface IReportProps {
   report: IReport;
@@ -14,8 +15,61 @@ export const Report = (props: IReportProps) => {
   const [occurrences, setOccurrences] = useState<IOccurrence[] | undefined>(undefined);
   const [moduleId, setModuleId] = useState<IModuleId | undefined>(undefined);
   const report = props.report;
-  const allVersions = getVersions(report.allUsedVersions);
+  const allVersions = [...ReportHelper.fetchAllVersions(report)];
   allVersions.sort();
+  const librariesAndConfigurations = ReportHelper.fetchConfigurationPerLibrariesAndVersion(report);
+
+  function renderAppRows(appName: string, appReport: IReportApplication) {
+    const appVersions = [...ReportHelper.fetchAppVersions(appReport)];
+
+    if (appVersions.length === 0) {
+      return <Fragment key={appName}></Fragment>;
+    }
+    return (
+      <Fragment key={appName}>
+        <TableRow>
+          <TableCell component="th" scope="row" sx={{ background: "#DDFFFF" }} colSpan={allVersions.length + 1}>
+            <strong>{appName}</strong> ({appVersions.join(", ")})
+          </TableCell>
+        </TableRow>
+        {Object.entries(appReport.modules).map(([moduleName, moduleReport]) => renderModuleRows(appName, moduleName, moduleReport))}
+      </Fragment>
+    );
+  }
+
+  function renderModuleRows(appName: string, moduleName: string, moduleReport: IReportModule) {
+    const moduleVersions = [...ReportHelper.fetchModuleVersions(moduleReport)];
+
+    if (moduleVersions.length === 0) {
+      return <Fragment key={moduleName}></Fragment>;
+    }
+    const occurencesPerVersion = ReportHelper.getOccurrencesPerVersion(moduleReport.occurrences);
+
+    return (
+      <TableRow key={moduleName}>
+        <TableCell component="th" scope="row" sx={{ paddingLeft: "2em" }}>
+          <Tooltip title="Show raw dependencies output">
+            <Link sx={{ cursor: "pointer" }} onClick={() => setModuleId({ appName, moduleName })}>
+              {moduleName}
+            </Link>
+          </Tooltip>
+        </TableCell>
+        {allVersions.map((v) => (
+          <TableCell align="center" key={v}>
+            {occurencesPerVersion[v] ? (
+              <Tooltip title="Show occurences for this module and version">
+                <Link sx={{ cursor: "pointer" }} onClick={() => setOccurrences(occurencesPerVersion[v])}>
+                  {occurencesPerVersion[v].length}x
+                </Link>
+              </Tooltip>
+            ) : (
+              ""
+            )}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  }
 
   return (
     <>
@@ -24,9 +78,18 @@ export const Report = (props: IReportProps) => {
         <TableContainer component={Paper}>
           <Table size="small">
             <TableBody>
-              {report.allUsedVersions.map((libAndVersion) => (
+              {sort([...librariesAndConfigurations.keys()]).map((libAndVersion) => (
                 <TableRow key={libAndVersion}>
-                  <TableCell>{libAndVersion}</TableCell>
+                  <TableCell>
+                    <Box display="flex" justifyContent="space-between">
+                      <span style={{ whiteSpace: "nowrap" }}>{libAndVersion}</span>
+                      <span style={{ textAlign: "right", lineHeight: "2em" }}>
+                        {sort([...librariesAndConfigurations.get(libAndVersion)!]).map((configuration) => (
+                          <Chip key={configuration} size="small" color="info" label={configuration} sx={{ marginLeft: "5px" }} />
+                        ))}
+                      </span>
+                    </Box>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -46,48 +109,7 @@ export const Report = (props: IReportProps) => {
               ))}
             </TableRow>
           </TableHead>
-          <TableBody>
-            {Object.entries(report.applications)
-              .filter(([, appReport]) => appReport.allUsedVersions.length > 0)
-              .map(([appName, appReport]) => (
-                <Fragment key={appName}>
-                  <TableRow>
-                    <TableCell component="th" scope="row" sx={{ background: "#DDFFFF" }} colSpan={allVersions.length + 1}>
-                      <strong>{appName}</strong> {appReport.allUsedVersions.length > 0 && <>({getVersions(appReport.allUsedVersions).join(", ")})</>}
-                    </TableCell>
-                  </TableRow>
-                  {Object.entries(appReport.modules)
-                    .filter(([, moduleReport]) => moduleReport.allUsedVersions.length > 0)
-                    .map(([moduleName, moduleReport]) => {
-                      const occurencesPerVersion = getOccurrencesPerVersion(moduleReport.occurrences);
-                      return (
-                        <TableRow key={moduleName}>
-                          <TableCell component="th" scope="row" sx={{ paddingLeft: "2em" }}>
-                            <Tooltip title="Show raw dependencies output">
-                              <Link sx={{ cursor: "pointer" }} onClick={() => setModuleId({ appName, moduleName })}>
-                                {moduleName}
-                              </Link>
-                            </Tooltip>
-                          </TableCell>
-                          {allVersions.map((v) => (
-                            <TableCell align="center" key={v}>
-                              {occurencesPerVersion[v] ? (
-                                <Tooltip title="Show occurences for this module and version">
-                                  <Link sx={{ cursor: "pointer" }} onClick={() => setOccurrences(occurencesPerVersion[v])}>
-                                    {occurencesPerVersion[v].length}x
-                                  </Link>
-                                </Tooltip>
-                              ) : (
-                                ""
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      );
-                    })}
-                </Fragment>
-              ))}
-          </TableBody>
+          <TableBody>{Object.entries(report.applications).map(([appName, appReport]) => renderAppRows(appName, appReport))}</TableBody>
         </Table>
       </TableContainer>
       {occurrences && <Occurrences occurrences={occurrences} onClose={() => setOccurrences(undefined)} />}
@@ -96,26 +118,8 @@ export const Report = (props: IReportProps) => {
   );
 };
 
-function getVersion(libAndVersion: string) {
-  const parts = libAndVersion.split(":");
-  let versionPart = parts[parts.length - 1];
-  versionPart = versionPart.replace(/\(.*\)/, "").trim();
-  versionPart = versionPart.replace(/^.*\->/, "").trim();
-  return versionPart;
-}
-
-function getVersions(libAndVersion: string[]): string[] {
-  return [...new Set<string>(libAndVersion.map((v) => getVersion(v)))];
-}
-
-function getOccurrencesPerVersion(occurrences: IOccurrence[]): { [version: string]: IOccurrence[] } {
-  const result: { [version: string]: IOccurrence[] } = {};
-  for (const occurrence of occurrences) {
-    const version = getVersion(occurrence.library);
-    if (!result[version]) {
-      result[version] = [];
-    }
-    result[version].push(occurrence);
-  }
+function sort(array: string[]): string[] {
+  const result = [...array];
+  result.sort();
   return result;
 }

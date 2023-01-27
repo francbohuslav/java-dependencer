@@ -64,32 +64,22 @@ export class DependencyScan {
   }
 
   public search(library: string): IReport {
-    const allUsedVersions = new Set<string>();
     const report: IReport = {
       applications: {},
-      allUsedVersions: [],
     };
     for (const appName of Object.keys(this.appStructure)) {
-      const appUsedVersions = new Set<string>();
       const moduleReports: { [moduleName: string]: IReportModule } = {};
       for (const moduleName of this.appStructure[appName]) {
         const moduleReport = this.searchModule(moduleName, join(this.outputDir, appName), library);
         if (moduleReport) {
-          for (const version of moduleReport.allUsedVersions) {
-            appUsedVersions.add(version);
-            allUsedVersions.add(version);
-          }
           moduleReports[moduleName] = moduleReport;
         }
       }
       const appReport: IReportApplication = {
-        allUsedVersions: [...appUsedVersions],
         modules: moduleReports,
       };
       report.applications[appName] = appReport;
     }
-    report.allUsedVersions = [...allUsedVersions];
-    report.allUsedVersions.sort();
     return report;
   }
 
@@ -137,14 +127,9 @@ export class DependencyScan {
     try {
       const outputPath = join(outputDir, moduleName + ".txt");
       const output = core.readTextFile(outputPath);
-      const parser = new DependencyReportParser(this.console);
-      const nodes = parser.parse(output);
-
-      const collector = new DependencyCollector();
-      const occurrences = collector.collect(nodes, library);
+      const nodes = new DependencyReportParser().parse(output);
       return {
-        allUsedVersions: [...new Set(occurrences.map((o) => o.library))],
-        occurrences,
+        occurrences: new DependencyCollector().collect(nodes, library),
       };
     } catch (err) {
       this.console.error(err);
@@ -156,7 +141,8 @@ export class DependencyScan {
     try {
       const outputPath = join(outputDir, moduleName + ".txt");
       const output = core.readTextFile(outputPath);
-      const parser = new DependencyReportParser(this.console);
+
+      const parser = new DependencyReportParser();
       const nodes = parser.parse(output);
 
       const collector = new DependencyCollector();

@@ -23,7 +23,9 @@ export class DependencyCollector {
       const pathToRoot = [node, ...parents];
       if (node.library == library) {
         occurrences.push({
-          library: node.library + ":" + node.version,
+          configuration: node.configuration,
+          library: node.library,
+          versionPart: node.version,
           usedBy: pathToRoot.map((n) => n.library + ":" + n.version),
         });
       }
