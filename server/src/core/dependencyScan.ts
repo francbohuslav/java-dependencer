@@ -7,7 +7,7 @@ import { promisify } from "util";
 import core from "./core";
 import { DependencyCollector } from "./dependencyCollector";
 import { DependencyReportParser } from "./dependencyReportParser";
-import { IConsole, IReport, IReportApplication, IReportModule } from "./interfaces";
+import { ICollisionReport, ICollisonCollector, IConsole, IReport, IReportApplication, IReportModule } from "./interfaces";
 
 const globAsync = promisify(glob);
 
@@ -88,6 +88,34 @@ export class DependencyScan {
     return core.readTextFile(outputPath);
   }
 
+  public getCollisions(): ICollisionReport {
+    const collectionResult: ICollisonCollector = {};
+    for (const appName of Object.keys(this.appStructure)) {
+      for (const moduleName of this.appStructure[appName]) {
+        try {
+          const outputPath = join(join(this.outputDir, appName), moduleName + ".txt");
+          const output = core.readTextFile(outputPath);
+          const nodes = new DependencyReportParser().parse(output);
+          const collector = new DependencyCollector();
+          collector.getAllLibraries(nodes, collectionResult);
+        } catch (err) {
+          this.console.error(err);
+          return undefined;
+        }
+      }
+    }
+    const report: ICollisionReport = {};
+    const libraries = Object.keys(collectionResult);
+    libraries.sort();
+    libraries.forEach((library) => {
+      if (collectionResult[library].size > 1) {
+        report[library] = [...collectionResult[library]];
+        report[library].sort();
+      }
+    });
+    return report;
+  }
+
   private async findApplications() {
     this.console.log(`Searching gradlew in ${this.cwd}...`);
     let gradlews = await globAsync(join(this.cwd, "gradlew").replace(/\\/g, "/"));
@@ -137,7 +165,7 @@ export class DependencyScan {
     }
   }
 
-  getModuleLibraries(moduleName: string, outputDir: string, allUsedLibraries: Set<string>, library: string) {
+  getModuleLibraries(moduleName: string, outputDir: string, foundLibraries: Set<string>, library: string) {
     try {
       const outputPath = join(outputDir, moduleName + ".txt");
       const output = core.readTextFile(outputPath);
@@ -146,7 +174,7 @@ export class DependencyScan {
       const nodes = parser.parse(output);
 
       const collector = new DependencyCollector();
-      collector.collectLibraries(nodes, allUsedLibraries, library);
+      collector.searchForLibraries(nodes, foundLibraries, library);
     } catch (err) {
       this.console.error(err);
       return undefined;

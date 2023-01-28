@@ -1,6 +1,6 @@
 export interface INode {
   library: string;
-  version: string;
+  versionPart: string;
   configuration: string;
   level: number;
   hypens: string;
@@ -18,6 +18,7 @@ export interface IOccurrence {
   library: string;
   /** E.g. 2.8.1 -> 2.9.6 */
   versionPart: string;
+  version: string;
   usedBy: string[];
 }
 
@@ -32,3 +33,6 @@ export interface IReportApplication {
 export interface IReportModule {
   occurrences: IOccurrence[];
 }
+
+export type ICollisonCollector = { [library: string]: Set<string> };
+export type ICollisionReport = { [library: string]: string[] };

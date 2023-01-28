@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from "@nestjs/common";
 import { DependencyScan } from "./core/dependencyScan";
-import { IReport } from "./core/interfaces";
+import { ICollisionReport, IReport } from "./core/interfaces";
 
 @Controller("/api")
 export class AppController {
@@ -29,5 +29,10 @@ export class AppController {
   async refreshDependencies(): Promise<boolean> {
     await DependencyScan.Instance.scan(true);
     return true;
+  }
+
+  @Get("collisions")
+  collisions(): ICollisionReport {
+    return DependencyScan.Instance.getCollisions();
   }
 }

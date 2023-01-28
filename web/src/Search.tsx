@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { ajax } from "./functions";
 
 export interface ISearchProps {
+  library: string;
   onChange(library: string): void;
 }
 
 export default function Search(props: ISearchProps) {
-  const [value, setValue] = useState<string | null>(null);
+  const [value, setValue] = useState<string | null>(props.library);
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<readonly string[]>([]);
 

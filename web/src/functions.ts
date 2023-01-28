@@ -13,3 +13,13 @@ export interface IModuleId {
   appName: string;
   moduleName: string;
 }
+
+export enum PagesEnum {
+  AnalyzePage = "/analyze",
+  CollisionPage = "/",
+}
+
+export const PageTitles = {
+  [PagesEnum.AnalyzePage]: "Analyze library",
+  [PagesEnum.CollisionPage]: "Version collision",
+};

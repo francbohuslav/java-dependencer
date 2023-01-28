@@ -1,16 +1,10 @@
 import { IOccurrence, IReport, IReportApplication, IReportModule } from "../../server/src/core/interfaces";
 
 class ReportHelper {
-  private getVersion(versionPart: string) {
-    versionPart = versionPart.replace(/\(.*\)/, "").trim();
-    versionPart = versionPart.replace(/^.*\->/, "").trim();
-    return versionPart;
-  }
-
   public getOccurrencesPerVersion(occurrences: IOccurrence[]): { [version: string]: IOccurrence[] } {
     const result: { [version: string]: IOccurrence[] } = {};
     for (const occurrence of occurrences) {
-      const version = this.getVersion(occurrence.versionPart);
+      const version = occurrence.version;
       if (!result[version]) {
         result[version] = [];
       }
@@ -38,7 +32,7 @@ class ReportHelper {
   public fetchModuleVersions(module: IReportModule, versions: Set<string> = new Set<string>()) {
     versions = versions || new Set<string>();
     for (const occ of module.occurrences) {
-      versions.add(this.getVersion(occ.versionPart));
+      versions.add(occ.version);
     }
     return versions;
   }

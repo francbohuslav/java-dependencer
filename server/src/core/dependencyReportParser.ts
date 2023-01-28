@@ -1,3 +1,4 @@
+import core from "./core";
 import { INode } from "./interfaces";
 
 export class DependencyReportParser {
@@ -9,16 +10,16 @@ export class DependencyReportParser {
 
   public parse(content: string): INode[] {
     const lines = this.getTreeLines(content);
-    // core.writeTextFile("testingOutput.txt", lines.join("\n"));
-    const tree = this.getTree(lines);
+    let tree = this.getTree(lines);
+    tree = this.removeProjectNodes(tree);
+    //core.writeTextFile("testingOutput.txt", JSON.stringify(tree, null, 2));
     return tree;
   }
 
-  /* istanbul ignore next */
   testingPrint(nodes: INode[]): string {
     let str = "";
     for (const node of nodes) {
-      str += `${"|    ".repeat(node.level - 1)}${node.hypens} ${node.library}:${node.version}\r\n`;
+      str += `${"|    ".repeat(node.level - 1)}${node.hypens} ${node.library}:${node.versionPart}\r\n`;
       if (node.childNodes.length > 0) {
         str += this.testingPrint(node.childNodes);
       }
@@ -31,7 +32,7 @@ export class DependencyReportParser {
       level: 0,
       library: this.ROOT_NODE_NAME,
       childNodes: [],
-      version: "",
+      versionPart: "",
       hypens: "",
       configuration: "",
     };
@@ -57,7 +58,7 @@ export class DependencyReportParser {
           level,
           hypens: line.substring(hypenSepParts[0].length, hypenSepParts[0].length + 4),
           library: match ? match[1] : line,
-          version: match ? match[2] : "",
+          versionPart: match ? match[2] : "",
           configuration,
           childNodes: [],
         };
@@ -98,5 +99,22 @@ export class DependencyReportParser {
     return content
       .split(/\r?\n/)
       .filter((line) => (line.includes("---") || line.match(this.configurationRegex)) && !line.includes("-> project ") && !line.includes("-----------"));
+  }
+
+  private removeProjectNodes(nodes: INode[]) {
+    const newNodes: INode[] = [];
+    for (const node of nodes) {
+      if (!this.isProjectNode(node)) {
+        newNodes.push(node);
+        if (node.childNodes.length > 0) {
+          node.childNodes = this.removeProjectNodes(node.childNodes);
+        }
+      }
+    }
+    return newNodes;
+  }
+
+  private isProjectNode(node: INode): boolean {
+    return node.library.startsWith("project ");
   }
 }
