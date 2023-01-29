@@ -1,9 +1,15 @@
-import { Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Fragment } from "react";
 import { IOccurrence } from "../../server/src/core/interfaces";
+import ConfigurationsHelper from "./ConfigurationsHelper";
+import { DisablableConfiguration } from "./DisablableConfiguration";
+import { LibraryInfo } from "./LibraryInfo";
+import ReportHelper from "./ReportHelper";
 
 export interface IOccurrencesProps {
   occurrences: IOccurrence[];
   onClose(): void;
+  onRefresh(): void;
 }
 
 export const Occurrences = (props: IOccurrencesProps) => {
@@ -14,21 +20,31 @@ export const Occurrences = (props: IOccurrencesProps) => {
       <DialogTitle>Occurrences</DialogTitle>
       <DialogContent>
         {occurrences.map((occ, i) => {
+          if (ReportHelper.isOccurrencesFullDisabled(occ)) {
+            return <Fragment key={i}></Fragment>;
+          }
           const path = [...occ.usedBy];
           path.reverse();
           return (
             <Box key={i} mt={3} sx={{ position: "relative" }}>
-              <Chip
-                size="small"
-                color="info"
-                label={occ.configuration}
-                sx={{ position: "absolute", right: "-5px", top: "-8px", boxShadow: "2px 2px 4px rgb(0,0,0,0.3)" }}
-              />
+              <Box sx={{ position: "absolute", right: "-5px", top: "-12px" }}>
+                {occ.configurations
+                  .filter((c) => ConfigurationsHelper.isEnabled(c))
+                  .map((c) => (
+                    <DisablableConfiguration configuration={c} sx={{ marginLeft: "0.5em" }} onDisable={props.onRefresh} />
+                  ))}
+              </Box>
               <Card elevation={2}>
                 <CardContent>
                   {path.map((u, level) => (
-                    <Typography key={u} variant="body1" sx={{ fontFamily: "monospace", paddingLeft: level * 20 + "px" }}>
-                      {level == path.length - 1 ? <strong>{u}</strong> : u}
+                    <Typography key={`key${level}`} variant="body1" sx={{ fontFamily: "monospace", paddingLeft: level * 20 + "px" }}>
+                      {level == path.length - 1 ? (
+                        <strong>
+                          <LibraryInfo library={u} />
+                        </strong>
+                      ) : (
+                        <LibraryInfo library={u} />
+                      )}
                     </Typography>
                   ))}
                 </CardContent>

@@ -1,16 +1,18 @@
+import * as md5 from "md5";
 import { ICollisonCollector, INode, IOccurrence } from "./interfaces";
 
 export class DependencyCollector {
-  public collect(nodes: INode[], library: string): IOccurrence[] {
-    const occurrences: IOccurrence[] = [];
-    this.collectInternal(nodes, library, occurrences);
+  public collectOccurences(nodes: INode[], library: string): IOccurrence[] {
+    let occurrences: IOccurrence[] = [];
+    this.collectOccurencesInternal(nodes, library, occurrences);
+    occurrences = this.mergeSameOccurences(occurrences);
     return occurrences;
   }
 
   public searchForLibraries(nodes: INode[], foundLibraries: Set<string>, library: string) {
     for (const node of nodes) {
-      if (node.library.includes(library)) {
-        foundLibraries.add(node.library);
+      if (node.libraryInfo.name.includes(library)) {
+        foundLibraries.add(node.libraryInfo.name);
       }
       if (node.childNodes.length > 0) {
         this.searchForLibraries(node.childNodes, foundLibraries, library);
@@ -20,10 +22,11 @@ export class DependencyCollector {
 
   public getAllLibraries(nodes: INode[], allUsedLibraries: ICollisonCollector) {
     for (const node of nodes) {
-      if (!allUsedLibraries[node.library]) {
-        allUsedLibraries[node.library] = new Set<string>();
+      const name = node.libraryInfo.name;
+      if (!allUsedLibraries[name]) {
+        allUsedLibraries[name] = new Set<string>();
       }
-      allUsedLibraries[node.library].add(this.getVersion(node.versionPart));
+      allUsedLibraries[name].add(node.libraryInfo.version);
 
       if (node.childNodes.length > 0) {
         this.getAllLibraries(node.childNodes, allUsedLibraries);
@@ -31,27 +34,36 @@ export class DependencyCollector {
     }
   }
 
-  private collectInternal(nodes: INode[], library: string, occurrences: IOccurrence[], parents: INode[] = []) {
+  private collectOccurencesInternal(nodes: INode[], library: string, occurrences: IOccurrence[], parents: INode[] = []) {
     for (const node of nodes) {
       const pathToRoot = [node, ...parents];
-      if (node.library == library) {
+      if (node.libraryInfo.name === library) {
         occurrences.push({
-          configuration: node.configuration,
-          library: node.library,
-          versionPart: node.versionPart,
-          version: this.getVersion(node.versionPart),
-          usedBy: pathToRoot.map((n) => n.library + ":" + n.versionPart),
+          configurations: [node.configuration],
+          libraryInfo: node.libraryInfo,
+          usedBy: pathToRoot.map((n) => n.libraryInfo),
         });
       }
       if (node.childNodes.length) {
-        this.collectInternal(node.childNodes, library, occurrences, pathToRoot);
+        this.collectOccurencesInternal(node.childNodes, library, occurrences, pathToRoot);
       }
     }
   }
-
-  private getVersion(versionPart: string) {
-    versionPart = versionPart.replace(/\(.*\)/, "").trim();
-    versionPart = versionPart.replace(/^.*\->/, "").trim();
-    return versionPart;
+  private mergeSameOccurences(occurrences: IOccurrence[]): IOccurrence[] {
+    const occurrencesPerHash: { [hash: string]: IOccurrence } = {};
+    for (const occ of occurrences) {
+      const key = md5(`${occ.libraryInfo.name}|${occ.libraryInfo.versionPart}|${occ.usedBy.join("|")}`);
+      if (occurrencesPerHash[key]) {
+        if (!occurrencesPerHash[key].configurations.includes(occ.configurations[0])) {
+          occurrencesPerHash[key].configurations.push(occ.configurations[0]);
+        }
+      } else {
+        occurrencesPerHash[key] = occ;
+      }
+    }
+    for (const occ of Object.values(occurrencesPerHash)) {
+      occ.configurations.sort();
+    }
+    return Object.values(occurrencesPerHash);
   }
 }

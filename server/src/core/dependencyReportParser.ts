@@ -1,5 +1,4 @@
-import core from "./core";
-import { INode } from "./interfaces";
+import { INode, LibraryInfoEnum } from "./interfaces";
 
 export class DependencyReportParser {
   private readonly libraryIdentifier = /[+\\]---/;
@@ -19,7 +18,7 @@ export class DependencyReportParser {
   testingPrint(nodes: INode[]): string {
     let str = "";
     for (const node of nodes) {
-      str += `${"|    ".repeat(node.level - 1)}${node.hypens} ${node.library}:${node.versionPart}\r\n`;
+      str += `${"|    ".repeat(node.level - 1)}${node.hypens} ${node.libraryInfo.name}:${node.libraryInfo.versionPart}\r\n`;
       if (node.childNodes.length > 0) {
         str += this.testingPrint(node.childNodes);
       }
@@ -30,9 +29,8 @@ export class DependencyReportParser {
   private getTree(lines: string[]): INode[] {
     const root: INode = {
       level: 0,
-      library: this.ROOT_NODE_NAME,
+      libraryInfo: { name: this.ROOT_NODE_NAME, versionPart: "", info: LibraryInfoEnum.None, version: "" },
       childNodes: [],
-      versionPart: "",
       hypens: "",
       configuration: "",
     };
@@ -57,8 +55,12 @@ export class DependencyReportParser {
         let node: INode = {
           level,
           hypens: line.substring(hypenSepParts[0].length, hypenSepParts[0].length + 4),
-          library: match ? match[1] : line,
-          versionPart: match ? match[2] : "",
+          libraryInfo: {
+            name: match?.[1] ?? line,
+            versionPart: match?.[2] ?? "",
+            version: this.getVersion(match?.[2] ?? ""),
+            info: this.getVersionInfo(match?.[2] ?? ""),
+          },
           configuration,
           childNodes: [],
         };
@@ -96,9 +98,7 @@ export class DependencyReportParser {
    * @param content
    */
   private getTreeLines(content: string): string[] {
-    return content
-      .split(/\r?\n/)
-      .filter((line) => (line.includes("---") || line.match(this.configurationRegex)) && !line.includes("-> project ") && !line.includes("-----------"));
+    return content.split(/\r?\n/).filter((line) => (line.includes("---") || line.match(this.configurationRegex)) && !line.includes("-----------"));
   }
 
   private removeProjectNodes(nodes: INode[]) {
@@ -115,6 +115,23 @@ export class DependencyReportParser {
   }
 
   private isProjectNode(node: INode): boolean {
-    return node.library.startsWith("project ");
+    // if (node.libraryInfo.name.includes("project") || node.libraryInfo.versionPart.includes("project")) {
+    //   console.log(node.libraryInfo);
+    // }
+    return node.libraryInfo.name.startsWith("project ") || node.libraryInfo.name.includes("-> project ");
+  }
+
+  private getVersion(versionPart: string) {
+    versionPart = versionPart.replace(/\(.*\)/, "").trim();
+    versionPart = versionPart.replace(/^.*\->/, "").trim();
+    return versionPart;
+  }
+
+  private getVersionInfo(versionPart: string): LibraryInfoEnum {
+    const match = versionPart.trim().match(/\((.*)\)$/);
+    if (match) {
+      return match[1] as LibraryInfoEnum;
+    }
+    return LibraryInfoEnum.None;
   }
 }

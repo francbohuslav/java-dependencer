@@ -157,7 +157,7 @@ export class DependencyScan {
       const output = core.readTextFile(outputPath);
       const nodes = new DependencyReportParser().parse(output);
       return {
-        occurrences: new DependencyCollector().collect(nodes, library),
+        occurrences: new DependencyCollector().collectOccurences(nodes, library),
       };
     } catch (err) {
       this.console.error(err);
