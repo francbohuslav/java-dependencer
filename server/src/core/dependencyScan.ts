@@ -183,7 +183,7 @@ export class DependencyScan {
 
   async execWithoutError(command: string, cwd: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      exec(command, { cwd }, (error, stdout) => {
+      exec(command, { cwd, maxBuffer: 1024 * 1024 * 10 }, (error, stdout) => {
         if (error) {
           reject(error);
           return;
@@ -191,26 +191,5 @@ export class DependencyScan {
         resolve(stdout);
       });
     });
-  }
-
-  /**
-   * Original dependency file is not consistent. Fix that to compare it with testing output.
-   */
-  private normalizeOutput(output: string) {
-    let prevOutput = output;
-    do {
-      prevOutput = output;
-      output = output.replace(/         /g, "    |    ");
-      output = output.replace(/^     /gm, "|    ");
-    } while (prevOutput != output);
-    do {
-      prevOutput = output;
-      output = output.replace(/^    ([|+\\])/gm, "|    $1");
-    } while (prevOutput != output);
-    do {
-      prevOutput = output;
-      output = output.replace(/\|     ([|+\\])/gm, "|    $1");
-    } while (prevOutput != output);
-    return output;
   }
 }
