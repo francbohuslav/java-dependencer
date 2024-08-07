@@ -7,7 +7,7 @@ import { promisify } from "util";
 import core from "./core";
 import { DependencyCollector } from "./dependencyCollector";
 import { DependencyReportParser } from "./dependencyReportParser";
-import { ICollisionReport, ICollisonCollector, IConsole, IReport, IReportApplication, IReportModule } from "./interfaces";
+import { ICollisionCollector, ICollisionReport, IConsole, IReport, IReportApplication, IReportModule } from "./interfaces";
 
 const globAsync = promisify(glob);
 
@@ -18,13 +18,13 @@ export class DependencyScan {
 
   private outputDir: string;
 
-  constructor(private console: IConsole, private cwd: string) {
+  constructor(private console: IConsole, private cwd: string, private jdk: string | undefined) {
     this.outputDir = join(cwd, ".javaDependencerOutput");
   }
 
   public async scan(force: boolean): Promise<void> {
     this.console.log(`See folder ${this.outputDir} for reports`);
-    this.createOutputdir(this.outputDir);
+    this.createOutputDir(this.outputDir);
     if (force) {
       const fileToDelete = await readdir(this.outputDir);
       for (const file of fileToDelete) {
@@ -89,7 +89,7 @@ export class DependencyScan {
   }
 
   public getCollisions(): ICollisionReport {
-    const collectionResult: ICollisonCollector = {};
+    const collectionResult: ICollisionCollector = {};
     for (const appName of Object.keys(this.appStructure)) {
       for (const moduleName of this.appStructure[appName]) {
         try {
@@ -118,15 +118,15 @@ export class DependencyScan {
 
   private async findApplications() {
     this.console.log(`Searching gradlew in ${this.cwd}...`);
-    let gradlews = await globAsync(join(this.cwd, "gradlew").replace(/\\/g, "/"));
-    gradlews = gradlews.concat(await globAsync(join(this.cwd, "*/gradlew").replace(/\\/g, "/")));
-    gradlews = gradlews.concat(await globAsync(join(this.cwd, "*/*/gradlew").replace(/\\/g, "/")));
-    const apps = gradlews.map((g) => dirname(g));
+    let gradlewList = await globAsync(join(this.cwd, "gradlew").replace(/\\/g, "/"));
+    gradlewList = gradlewList.concat(await globAsync(join(this.cwd, "*/gradlew").replace(/\\/g, "/")));
+    gradlewList = gradlewList.concat(await globAsync(join(this.cwd, "*/*/gradlew").replace(/\\/g, "/")));
+    const apps = gradlewList.map((g) => dirname(g));
     this.console.log("Found apps", apps);
     return apps;
   }
 
-  private createOutputdir(outputDir: string) {
+  private createOutputDir(outputDir: string) {
     if (!existsSync(outputDir)) {
       mkdirSync(outputDir);
     }
@@ -135,11 +135,12 @@ export class DependencyScan {
   private async scanModule(moduleFolder: string, outputDir: string, force: boolean): Promise<boolean> {
     try {
       this.console.log(" -", basename(moduleFolder));
-      this.createOutputdir(outputDir);
+      this.createOutputDir(outputDir);
       let output = "";
       const outputPath = join(outputDir, basename(moduleFolder) + ".txt");
       if (force || !existsSync(outputPath)) {
-        output = await this.execWithoutError(`..${sep}gradlew dependencies`, moduleFolder);
+        const jdkString = this.jdk ? `"-Dorg.gradle.java.home=${this.jdk}"` : "";
+        output = await this.execWithoutError(`..${sep}gradlew dependencies ${jdkString}`.trim(), moduleFolder);
         core.writeTextFile(outputPath, output);
       } else {
         output = core.readTextFile(outputPath);

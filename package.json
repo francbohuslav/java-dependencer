@@ -1,6 +1,6 @@
 {
   "name": "java-dependencer",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Java project dependency analyzer",
   "main": "server/dist/main.js",
   "bin": {

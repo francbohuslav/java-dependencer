@@ -19,6 +19,12 @@ Skype: [cis_franc](skype:cis_franc), E-mail: [bohuslav.franc@unicornuniverse.eu]
 2. First time dependencies are gathered. See console, and wait for ...
 3. ... open http://localhost:3000
 
+### Syntaxe
+
+`npx java-dependencer [jdkPath]`
+
+- jdkPath - Optional path to JDK
+
 ---
 
 ## Screenshot

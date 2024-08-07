@@ -29,7 +29,7 @@ export interface IReportModule {
   occurrences: IOccurrence[];
 }
 
-export type ICollisonCollector = { [library: string]: Set<string> };
+export type ICollisionCollector = { [library: string]: Set<string> };
 export type ICollisionReport = { [library: string]: string[] };
 
 export interface ILibrary {

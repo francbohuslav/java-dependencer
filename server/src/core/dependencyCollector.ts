@@ -1,5 +1,5 @@
 import * as md5 from "md5";
-import { ICollisonCollector, INode, IOccurrence } from "./interfaces";
+import { ICollisionCollector, INode, IOccurrence } from "./interfaces";
 
 export class DependencyCollector {
   public collectOccurences(nodes: INode[], library: string): IOccurrence[] {
@@ -20,7 +20,7 @@ export class DependencyCollector {
     }
   }
 
-  public getAllLibraries(nodes: INode[], allUsedLibraries: ICollisonCollector) {
+  public getAllLibraries(nodes: INode[], allUsedLibraries: ICollisionCollector) {
     for (const node of nodes) {
       const name = node.libraryInfo.name;
       if (!allUsedLibraries[name]) {
